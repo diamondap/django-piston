@@ -59,7 +59,6 @@ class Emitter(object):
     as the methods on the handler. Issue58 says that's no good.
     """
     EMITTERS = { }
-    ALWAYS_200_OK = False
     RESERVED_FIELDS = set([ 'read', 'update', 'create',
                             'delete', 'model', 'anonymous',
                             'allowed_methods', 'fields', 'exclude' ])
@@ -96,16 +95,16 @@ class Emitter(object):
 
         Returns `dict`.
         """
-        def _any(thing, fields=()):
+        def _any(thing, fields=None):
             """
             Dispatch, all types are routed through here.
             """
             ret = None
 
             if isinstance(thing, QuerySet):
-                ret = _qs(thing, fields=fields)
+                ret = _qs(thing, fields)
             elif isinstance(thing, (tuple, list, set)):
-                ret = _list(thing, fields=fields)
+                ret = _list(thing, fields)
             elif isinstance(thing, dict):
                 ret = _dict(thing, fields)
             elif isinstance(thing, decimal.Decimal):
@@ -134,19 +133,19 @@ class Emitter(object):
             """
             return _any(getattr(data, field.name))
 
-        def _related(data, fields=()):
+        def _related(data, fields=None):
             """
             Foreign keys.
             """
             return [ _model(m, fields) for m in data.iterator() ]
 
-        def _m2m(data, field, fields=()):
+        def _m2m(data, field, fields=None):
             """
             Many to many (re-route to `_model`.)
             """
             return [ _model(m, fields) for m in getattr(data, field.name).iterator() ]
 
-        def _model(data, fields=()):
+        def _model(data, fields=None):
             """
             Models. Will respect the `fields` and/or
             `exclude` on the handler (see `typemapper`.)
@@ -158,7 +157,10 @@ class Emitter(object):
             if handler or fields:
                 v = lambda f: getattr(data, f.attname)
 
-                if not fields:
+                if handler:
+                    fields = getattr(handler, 'fields')    
+                
+                if not fields or hasattr(handler, 'fields'):
                     """
                     Fields was not specified, try to find teh correct
                     version in the typemapper we were sent.
@@ -193,7 +195,7 @@ class Emitter(object):
                 met_fields = self.method_fields(handler, get_fields)
 
                 for f in data._meta.local_fields + data._meta.virtual_fields:
-                    if hasattr(f, 'serialize') and f.serialize and not any([ p in met_fields for p in [ f.attname, f.name ]]):
+                    if f.serialize and not any([ p in met_fields for p in [ f.attname, f.name ]]):
                         if not f.rel:
                             if f.attname in get_fields:
                                 ret[f.attname] = _any(v(f))
@@ -276,19 +278,19 @@ class Emitter(object):
 
             return ret
 
-        def _qs(data, fields=()):
+        def _qs(data, fields=None):
             """
             Querysets.
             """
             return [ _any(v, fields) for v in data ]
 
-        def _list(data, fields=()):
+        def _list(data, fields=None):
             """
             Lists.
             """
             return [ _any(v, fields) for v in data ]
 
-        def _dict(data, fields=()):
+        def _dict(data, fields=None):
             """
             Dictionaries.
             """
@@ -385,20 +387,6 @@ class JSONEmitter(Emitter):
     JSON emitter, understands timestamps.
     """
     def render(self, request):
-        seria = simplejson.dumps(self.construct(), cls=DateTimeAwareJSONEncoder, ensure_ascii=False, indent=4)
-
-        return seria
-
-Emitter.register('json', JSONEmitter, 'application/json; charset=utf-8')
-Mimer.register(simplejson.loads, ('application/json',))
-
-class JSONPEmitter(Emitter):
-    """
-    JSONP emitter, understands timestamps.
-    """
-    ALWAYS_200_OK = True
-
-    def render(self, request):
         cb = request.GET.get('callback', None)
         seria = simplejson.dumps(self.construct(), cls=DateTimeAwareJSONEncoder, ensure_ascii=False, indent=4)
 
@@ -408,7 +396,8 @@ class JSONPEmitter(Emitter):
 
         return seria
 
-Emitter.register('jsonp', JSONPEmitter, 'application/jsonp; charset=utf-8')
+Emitter.register('json', JSONEmitter, 'application/json; charset=utf-8')
+Mimer.register(simplejson.loads, ('application/json',))
 
 class YAMLEmitter(Emitter):
     """
