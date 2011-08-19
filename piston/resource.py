@@ -135,8 +135,12 @@ class Resource(object):
         if rm in ('POST', 'PUT'):
             try:
                 translate_mime(request)
-            except MimerDataException:
-                return rc.BAD_REQUEST
+            except MimerDataException, e:
+                if e:
+                    r = rc.BAD_REQUEST
+                    r.content = e
+                    return r
+                return rc.BAD_REQUEST 
             if not hasattr(request, 'data'):
                 if rm == 'POST':
                     request.data = request.POST

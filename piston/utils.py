@@ -1,4 +1,6 @@
 import time
+from simplejson.decoder import JSONDecodeError
+
 from django.http import HttpResponseNotAllowed, HttpResponseForbidden, HttpResponse, HttpResponseBadRequest
 from django.core.urlresolvers import reverse
 from django.core.cache import cache
@@ -253,7 +255,10 @@ class Mimer(object):
             
             if loadee:
                 try:
-                    self.request.data = loadee(self.request.raw_post_data)
+                    try:
+                        self.request.data = loadee(self.request.raw_post_data)
+                    except JSONDecodeError, e:
+                        raise MimerDataException('Invalid JSON input')
                         
                     # Reset both POST and PUT from request, as its
                     # misleading having their presence around.
