@@ -1,5 +1,6 @@
 from __future__ import generators
 
+import datetime
 import decimal, re, inspect
 import copy
 
@@ -122,6 +123,8 @@ class Emitter(object):
                     ret = _any(f())
             elif repr(thing).startswith("<django.db.models.fields.related.RelatedManager"):
                 ret = _any(thing.all())
+            elif isinstance(thing, datetime.datetime):
+                return thing.isoformat()[0:19]
             else:
                 ret = smart_unicode(thing, strings_only=True)
 
