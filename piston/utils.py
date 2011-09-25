@@ -354,3 +354,14 @@ def send_consumer_mail(consumer):
         print "Subject: %s" % _(subject)
         print body
 
+def get_http_name(name):
+    """
+    Gives the HTTP method corresponding to the handler method name
+    """
+    return {
+        'read': 'GET',
+        'create': 'POST',
+        'delete': 'DELETE',
+        'update': 'PUT',
+    }[name]
+

@@ -2,6 +2,7 @@ import inspect, handler
 
 from piston.handler import typemapper
 from piston.handler import handler_tracker
+from piston.utils import get_http_name
 
 from django.core.urlresolvers import get_resolver, get_callable, get_script_prefix
 from django.shortcuts import render_to_response
@@ -66,24 +67,25 @@ class HandlerMethod(object):
     
     @property
     def http_name(self):
-        if self.name == 'read':
-            return 'GET'
-        elif self.name == 'create':
-            return 'POST'
-        elif self.name == 'delete':
-            return 'DELETE'
-        elif self.name == 'update':
-            return 'PUT'
+        return get_http_name(self.name)
     
     def __repr__(self):
         return "<Method: %s>" % self.name
-    
+
 class HandlerDocumentation(object):
     def __init__(self, handler):
         self.handler = handler
         
-    def get_methods(self, include_default=False):
-        for method in "read create update delete".split():
+    def get_methods(self, include_default=False, available_only=False):
+
+        methods = ["read", "create", "update", "delete"]
+        if available_only: 
+            methods = [
+                m for m in methods 
+                if get_http_name(m) in self.handler.allowed_methods
+            ]
+
+        for method in methods:
             met = getattr(self.handler, method, None)
 
             if not met:
@@ -102,6 +104,9 @@ class HandlerDocumentation(object):
         
     def get_all_methods(self):
         return self.get_methods(include_default=True)
+
+    def get_all_allowed_methods(self):
+        return self.get_methods(include_default=True, available_only=True)
         
     @property
     def is_anonymous(self):
