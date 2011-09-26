@@ -2,7 +2,7 @@ import inspect, handler
 
 from piston.handler import typemapper
 from piston.handler import handler_tracker
-from piston.utils import get_http_name
+from piston.utils import get_http_name, parse_dbfield
 
 from django.core.urlresolvers import get_resolver, get_callable, get_script_prefix
 from django.shortcuts import render_to_response
@@ -113,7 +113,25 @@ class HandlerDocumentation(object):
         return self.handler.is_anonymous
 
     def get_model(self):
-        return getattr(self, 'model', None)
+        return getattr(self.handler, 'model', None)
+
+    def get_fields(self):
+        fields = getattr(self.handler, 'fields', None)
+        model = self.get_model()
+
+        if model and not fields:
+            fields = [f.name for f in model._meta.fields]
+
+        if model:
+            fields = [
+                parse_dbfield(f)
+                for f in model._meta.fields
+                if f.name in fields
+            ]
+        else:
+            fields = [{'name': f} for f in fields]
+        
+        return fields
             
     @property
     def has_anonymous(self):

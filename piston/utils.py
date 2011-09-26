@@ -365,3 +365,18 @@ def get_http_name(name):
         'update': 'PUT',
     }[name]
 
+def parse_dbfield(field):
+    ret = {
+        'name': field.name,
+        'type': field.__class__.__name__,
+        'ext': ''
+    }
+    
+    if field.max_length:
+        ret['ext'] += " (%s)" % field.max_length
+    if field.null:
+        ret['ext'] += " (nullable)"
+
+    return ret
+
+
