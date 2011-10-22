@@ -256,9 +256,20 @@ class Mimer(object):
             if loadee:
                 try:
                     try:
-                        self.request.data = loadee(self.request.raw_post_data)
+                        post_data = self.request.raw_post_data
+                        self.request.data = loadee(post_data)
                     except JSONDecodeError, e:
-                        raise MimerDataException('Invalid JSON input')
+                        # try harder. TODO: put this as a setting.
+                        new_post_data = ''
+                        for char in post_data:
+                            try:
+                                char.decode('utf-8')
+                                new_post_data += char
+                            except UnicodeDecodeError: pass
+                        try: # try the sanisized version
+                            self.request.data = loadee(new_post_data)
+                        except JSONDecodeError, e:
+                            raise MimerDataException('Invalid JSON input: %s' % e)
                         
                     # Reset both POST and PUT from request, as its
                     # misleading having their presence around.
