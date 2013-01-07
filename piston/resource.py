@@ -185,11 +185,14 @@ class Resource(object):
         # If we're looking at a response object which contains non-string
         # content, then assume we should use the emitter to format that 
         # content
-        if isinstance(result, HttpResponse) and not result._is_string:
+        result_is_string = False
+        if isinstance(result, HttpResponse) and hasattr(result, '_container'):
+            result_is_string = isinstance(result._container, basestring)
+	    if isinstance(result, HttpResponse) and not result_is_string:
             status_code = result.status_code
-            # Note: We can't use result.content here because that method attempts
-            # to convert the content into a string which we don't want. 
-            # when _is_string is False _container is the raw data
+            # Note: We can't use result.content here because that method attempts                                                                                  
+            # to convert the content into a string which we don't want.                                                                                            
+            # when result_is_string is False _container is the raw data                                                                                            
             result = result._container
      
         srl = emitter(result, typemapper, handler, fields, anonymous)
