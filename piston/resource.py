@@ -188,7 +188,7 @@ class Resource(object):
         result_is_string = False
         if isinstance(result, HttpResponse) and hasattr(result, '_container'):
             result_is_string = isinstance(result._container, basestring)
-	    if isinstance(result, HttpResponse) and not result_is_string:
+	if isinstance(result, HttpResponse) and not result_is_string:
             status_code = result.status_code
             # Note: We can't use result.content here because that method attempts                                                                                  
             # to convert the content into a string which we don't want.                                                                                            
