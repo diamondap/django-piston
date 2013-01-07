@@ -57,12 +57,6 @@ class rc_factory(object):
             flag is updated when the _set_content method (via the content 
             property) is called
             """
-            def __init__(self, *args, **kwargs):
-                super(HttpResponseWrapper, self).__init__(*args, **kwargs)
-                if self._is_string is None:
-                    self._is_string = (self._container and
-                                       isinstance(self._container, basestring))
-                                       
             def _set_content(self, content):
                 """
                 Set the _container and _is_string properties based on the 
